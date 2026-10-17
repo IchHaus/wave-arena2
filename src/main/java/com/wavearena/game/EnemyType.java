@@ -15,7 +15,7 @@ import net.minecraft.world.item.Items;
  */
 public enum EnemyType {
 	ZOMBIE("Zombie", EntityType.ZOMBIE, 1, 1, 4, 10, 1.0, 1.0, 1.0, m -> { }),
-	SKELETON("Skelett-Schütze", EntityType.SKELETON, 2, 2, 6, 7, 1.0, 1.0, 1.0, m -> Gear.hand(m, Items.BOW)),
+	SKELETON("Skelett-Schütze", EntityType.SKELETON, 2, 4, 7, 5, 0.8, 1.0, 1.0, m -> Gear.hand(m, Items.BOW)),
 	SPIDER("Riesenspinne", EntityType.SPIDER, 2, 3, 6, 6, 1.1, 1.0, 1.15, m -> { }),
 	HUSK("Wüstenkrieger", EntityType.HUSK, 2, 3, 7, 5, 1.3, 1.1, 1.0, m -> Gear.armor(m, Items.IRON_HELMET, null, null, null)),
 	CREEPER("Sprengmeister", EntityType.CREEPER, 3, 4, 9, 5, 1.0, 1.0, 1.05, m -> { }),

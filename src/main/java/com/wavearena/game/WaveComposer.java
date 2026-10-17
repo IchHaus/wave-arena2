@@ -47,11 +47,14 @@ public final class WaveComposer {
 
 		List<EnemyType> picked = new ArrayList<>();
 		double remaining = budget;
+		// Fernkämpfer sind früh sehr gefährlich, deshalb gibt es pro Welle nur wenige.
+		int rangedCap = 1 + wave / 3;
+		int rangedCount = 0;
 		int guard = 0;
 		while (remaining >= 1.0 && guard++ < 500) {
 			double totalWeight = 0;
 			for (EnemyType type : available) {
-				if (type.cost <= remaining) {
+				if (type.cost <= remaining && !capped(type, rangedCount, rangedCap)) {
 					totalWeight += weight(type, wave);
 				}
 			}
@@ -61,7 +64,7 @@ public final class WaveComposer {
 			double roll = random.nextDouble() * totalWeight;
 			EnemyType chosen = null;
 			for (EnemyType type : available) {
-				if (type.cost > remaining) {
+				if (type.cost > remaining || capped(type, rangedCount, rangedCap)) {
 					continue;
 				}
 				roll -= weight(type, wave);
@@ -74,10 +77,21 @@ public final class WaveComposer {
 				chosen = EnemyType.ZOMBIE;
 			}
 			picked.add(chosen);
+			if (isRanged(chosen)) {
+				rangedCount++;
+			}
 			remaining -= chosen.cost;
 		}
 
 		return new Plan(picked, bossWave ? BossType.forWave(wave) : null, modifier);
+	}
+
+	private static boolean isRanged(EnemyType type) {
+		return type == EnemyType.SKELETON || type == EnemyType.PILLAGER;
+	}
+
+	private static boolean capped(EnemyType type, int rangedCount, int rangedCap) {
+		return isRanged(type) && rangedCount >= rangedCap;
 	}
 
 	/** Neu freigeschaltete Gegner tauchen etwas häufiger auf, damit man sie bald kennenlernt. */
