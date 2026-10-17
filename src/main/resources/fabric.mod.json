@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "wavearena",
+	"version": "${version}",
+	"name": "Wave Arena",
+	"description": "Wellen-Überlebensmodus: Kämpfe in einer Arena gegen immer härtere Monsterwellen, verdiene Geld, kaufe bessere Ausrüstung und besiege Bosse.",
+	"authors": [
+		"Wave Arena"
+	],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.wavearena.WaveArena"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
