@@ -80,6 +80,7 @@ public final class GameManager {
 	private static final int BOSS_PAUSE_TICKS = 40 * 20;
 	private static final int ENDED_TICKS = 8 * 20;
 	private static final double DEATH_PENALTY = 0.30;
+	private static final int START_LIVES = 3;
 	private static final int COMBO_WINDOW_TICKS = 70;
 
 	private record Delayed(long at, Runnable action) {
@@ -106,10 +107,16 @@ public final class GameManager {
 	private static long timer;
 	private static long timerMax = 1;
 	private static int totalKills;
+	private static int lives = START_LIVES;
 	private static boolean bossKilledThisWave;
 	private static boolean cheated;
 	private static boolean scoreSubmitted;
 	private static boolean previousGriefing = true;
+	private static boolean previousAdvanceTime = true;
+	private static long previousDayTime;
+
+	/** Mitternacht: Die Monster brennen unter der Glaskuppel nicht, solange es dunkel ist. */
+	private static final long NIGHT_TIME = 18000L;
 
 	private GameManager() {
 	}
@@ -279,6 +286,12 @@ public final class GameManager {
 		previousGriefing = level.getGameRules().get(GameRules.MOB_GRIEFING);
 		level.getGameRules().set(GameRules.MOB_GRIEFING, false, srv);
 
+		// Dauer-Nacht: Zeit einfrieren, damit die Monster nicht im Tageslicht brennen.
+		previousAdvanceTime = level.getGameRules().get(GameRules.ADVANCE_TIME);
+		previousDayTime = level.getDayTime();
+		level.getGameRules().set(GameRules.ADVANCE_TIME, false, srv);
+		level.setDayTime(NIGHT_TIME);
+
 		clearEnemies(level);
 		ENEMIES.clear();
 		QUEUE.clear();
@@ -290,6 +303,7 @@ public final class GameManager {
 		cheated = firstWave > 1;
 		scoreSubmitted = false;
 		totalKills = 0;
+		lives = START_LIVES;
 		wave = firstWave - 1;
 		int money = START_MONEY + (firstWave - 1) * 80;
 
@@ -470,6 +484,8 @@ public final class GameManager {
 		inventory.clearContent();
 		inventory.setItem(0, unbreakable(new ItemStack(Items.WOODEN_SWORD)));
 		player.setItemSlot(EquipmentSlot.HEAD, unbreakable(new ItemStack(Items.LEATHER_HELMET)));
+		player.setItemSlot(EquipmentSlot.CHEST, unbreakable(new ItemStack(Items.LEATHER_CHESTPLATE)));
+		player.setItemSlot(EquipmentSlot.LEGS, unbreakable(new ItemStack(Items.LEATHER_LEGGINGS)));
 		player.setItemSlot(EquipmentSlot.FEET, unbreakable(new ItemStack(Items.LEATHER_BOOTS)));
 		player.removeAllEffects();
 		player.clearFire();
@@ -545,7 +561,7 @@ public final class GameManager {
 		}
 		broadcast(message, ChatFormatting.GRAY);
 		if (phase == Phase.WAVE && allDown()) {
-			gameOver(srv.overworld());
+			handleWipe(srv.overworld());
 		}
 	}
 
@@ -580,6 +596,17 @@ public final class GameManager {
 		}
 		if (now % 20 == 0) {
 			upkeep(level);
+		}
+		if (now % 100 == 0) {
+			keepNight(level);
+		}
+	}
+
+	/** Falls jemand mit /time set die Tageszeit ändert, wird es wieder Nacht. */
+	private static void keepNight(ServerLevel level) {
+		long time = level.getDayTime() % 24000L;
+		if (time < 13000L || time > 23000L) {
+			level.setDayTime(NIGHT_TIME);
 		}
 	}
 
@@ -862,7 +889,7 @@ public final class GameManager {
 		}
 		int remaining = QUEUE.size() + alive.size() + (pendingBoss != null ? 1 : 0);
 		String modifier = plan != null && plan.modifier() != WaveModifier.NONE ? " | " + plan.modifier().label : "";
-		BAR.setName(Text.bold("Welle " + wave + " | " + remaining + " Gegner übrig" + modifier, ChatFormatting.RED));
+		BAR.setName(Text.bold("Welle " + wave + " | " + remaining + " Gegner übrig" + modifier + " | Leben " + lives, ChatFormatting.RED));
 		BAR.setColor(barColor(plan == null ? WaveModifier.NONE : plan.modifier()));
 		BAR.setProgress(clamp(remaining / (float) waveTotal));
 	}
@@ -997,6 +1024,8 @@ public final class GameManager {
 		BAR.removeAllPlayers();
 		Cooldowns.clearAll();
 		level.getGameRules().set(GameRules.MOB_GRIEFING, previousGriefing, srv);
+		level.getGameRules().set(GameRules.ADVANCE_TIME, previousAdvanceTime, srv);
+		level.setDayTime(previousDayTime);
 		phase = Phase.IDLE;
 		if (!shutdown) {
 			ensureShopkeeper(level);
@@ -1036,7 +1065,7 @@ public final class GameManager {
 		}
 
 		if (phase == Phase.INTERMISSION) {
-			BAR.setName(Text.bold("Welle " + (wave + 1) + " beginnt in " + (timer / 20 + 1) + " s", ChatFormatting.GREEN));
+			BAR.setName(Text.bold("Welle " + (wave + 1) + " beginnt in " + (timer / 20 + 1) + " s | Leben " + lives, ChatFormatting.GREEN));
 			BAR.setColor(BossEvent.BossBarColor.GREEN);
 			BAR.setProgress(clamp(timer / (float) timerMax));
 		}
@@ -1127,23 +1156,72 @@ public final class GameManager {
 		player.clearFire();
 		player.removeAllEffects();
 		player.closeContainer();
-		player.setGameMode(GameType.SPECTATOR);
 
 		Fx.particles(level, ParticleTypes.SOUL_FIRE_FLAME, player.getX(), player.getY() + 1.0, player.getZ(), 30, 0.4, 0.8, 0.4, 0.05);
 		Fx.sound(level, player.getX(), player.getY(), player.getZ(), SoundEvents.WITHER_SPAWN, 0.4F, 1.8F);
-		Fx.title(player, Text.bold("BESIEGT", ChatFormatting.DARK_RED),
-				Text.line("-" + lost + " Münzen | nach der Welle bist du zurück", ChatFormatting.GRAY), 5, 60, 20);
 
 		Component death = source.getLocalizedDeathMessage(player);
 		Component message = Text.chat("", ChatFormatting.RED).append(death);
 		for (ServerPlayer other : participants()) {
 			other.sendSystemMessage(message);
 		}
+		player.sendSystemMessage(Text.chat("Du hast " + lost + " Münzen verloren.", ChatFormatting.RED));
+
 		if (allDown()) {
+			// Alle gefallen: ein Leben weg, die Welle beginnt von vorn (oder das Spiel ist vorbei).
+			if (lives <= 1) {
+				// Letztes Leben: Der Letzte schaut beim Game Over zu.
+				player.setGameMode(GameType.SPECTATOR);
+			}
+			handleWipe(level);
+			return;
+		}
+
+		player.setGameMode(GameType.SPECTATOR);
+		Fx.title(player, Text.bold("BESIEGT", ChatFormatting.DARK_RED),
+				Text.line("-" + lost + " Münzen | nach der Welle bist du zurück", ChatFormatting.GRAY), 5, 60, 20);
+		broadcast("Haltet durch! Wer fällt, kommt nach der Welle zurück.", ChatFormatting.GRAY);
+	}
+
+	/** Alle sind gefallen: Entweder gibt es einen neuen Versuch, oder die Leben sind aufgebraucht. */
+	private static void handleWipe(ServerLevel level) {
+		lives--;
+		if (lives <= 0) {
 			gameOver(level);
 		} else {
-			broadcast("Haltet durch! Wer fällt, kommt nach der Welle zurück.", ChatFormatting.GRAY);
+			wipe(level);
 		}
+	}
+
+	/** Neuer Versuch: Gegner weg, alle werden wiederbelebt, dieselbe Welle kommt noch einmal. */
+	private static void wipe(ServerLevel level) {
+		QUEUE.clear();
+		pendingBoss = null;
+		DELAYED.clear();
+		clearEnemies(level);
+		ENEMIES.clear();
+		cleanupDrops(level);
+
+		wave = Math.max(0, wave - 1);
+		phase = Phase.INTERMISSION;
+		timer = FIRST_PAUSE_TICKS;
+		timerMax = timer;
+
+		for (PlayerData data : PLAYERS.values()) {
+			ServerPlayer player = playerOf(data);
+			if (player == null) {
+				continue;
+			}
+			data.ready = false;
+			data.combo = 0;
+			revive(level, player, data);
+			Fx.title(player, Text.bold("NEUER VERSUCH", ChatFormatting.GOLD),
+					Text.line("Welle " + (wave + 1) + " wird wiederholt | Leben: " + lives, ChatFormatting.GRAY), 5, 70, 20);
+			Fx.sound(level, player.getX(), player.getY(), player.getZ(), SoundEvents.TOTEM_USE, 0.6F, 1.0F);
+		}
+		ensureShopkeeper(level);
+		broadcast("Alle sind gefallen, aber ihr bekommt einen neuen Versuch (Leben übrig: " + lives
+				+ "). Kauft nach, dann beginnt Welle " + (wave + 1) + " von vorn.", ChatFormatting.YELLOW);
 	}
 
 	private static void afterDamage(LivingEntity victim, DamageSource source, float baseDamage, float damageTaken, boolean blocked) {
