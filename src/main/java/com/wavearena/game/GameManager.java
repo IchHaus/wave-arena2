@@ -14,7 +14,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
@@ -50,7 +49,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
@@ -136,7 +134,6 @@ public final class GameManager {
 		ServerLivingEntityEvents.ALLOW_DEATH.register(GameManager::allowDeath);
 		ServerLivingEntityEvents.AFTER_DEATH.register(GameManager::afterDeath);
 		ServerLivingEntityEvents.AFTER_DAMAGE.register(GameManager::afterDamage);
-		ServerEntityEvents.ENTITY_LOAD.register(GameManager::onEntityLoad);
 
 		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
 			if (world.isClientSide() || hand != InteractionHand.MAIN_HAND) {
@@ -1241,20 +1238,6 @@ public final class GameManager {
 			if (data.isElite() || data.boss != null) {
 				player.sendSystemMessage(Text.chat("+" + coins + " Münzen für " + data.label, ChatFormatting.GOLD));
 			}
-		}
-	}
-
-	private static void onEntityLoad(Entity entity, ServerLevel world) {
-		if (phase != Phase.WAVE || !(entity instanceof AbstractArrow arrow)) {
-			return;
-		}
-		// Pfeile von Gegnern werden mit der Welle stärker.
-		if (arrow.getOwner() instanceof Mob owner && ENEMIES.containsKey(owner.getUUID())) {
-			double factor = WaveComposer.damageScale(wave);
-			if (plan != null) {
-				factor *= plan.modifier().damageFactor;
-			}
-			arrow.setBaseDamage(arrow.getBaseDamage() * factor);
 		}
 	}
 
