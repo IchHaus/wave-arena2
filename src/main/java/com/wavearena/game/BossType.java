@@ -8,23 +8,24 @@ import net.minecraft.world.item.Items;
 
 /** Boss-Gegner. Alle fünf Wellen kommt der nächste in der Reihe, danach wieder von vorn, nur stärker. */
 public enum BossType {
-	BONE_LORD("Der Knochenfürst", EntityType.ZOMBIE, 2.3, 240, 9, 1.0, m -> {
-		Gear.armor(m, Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS);
+	BONE_LORD("Der Knochenfürst", EntityType.ZOMBIE, 2.3, 170, 9, 1.0, m -> {
+		// Nur Helm und Brustpanzer: volle Eisenrüstung hätte das Leben fast verdoppelt.
+		Gear.armor(m, Items.IRON_HELMET, Items.IRON_CHESTPLATE, null, null);
 		Gear.hand(m, Items.IRON_AXE);
 	}, Ability.SLAM, Ability.SUMMON_ZOMBIES),
 
-	WITCH_QUEEN("Die Hexenkönigin", EntityType.WITCH, 1.9, 280, 0, 1.0, m -> { },
+	WITCH_QUEEN("Die Hexenkönigin", EntityType.WITCH, 1.9, 200, 0, 1.0, m -> { },
 			Ability.CURSE, Ability.SUMMON_VEXES),
 
-	TITAN("Der Titan", EntityType.RAVAGER, 1.5, 520, 18, 1.0, m -> { },
+	TITAN("Der Titan", EntityType.RAVAGER, 1.5, 370, 18, 1.0, m -> { },
 			Ability.SLAM, Ability.SUMMON_ZOMBIES),
 
-	DEATH_LORD("Der Todeslord", EntityType.WITHER_SKELETON, 2.5, 560, 14, 1.0, m -> {
+	DEATH_LORD("Der Todeslord", EntityType.WITHER_SKELETON, 2.5, 400, 14, 1.0, m -> {
 		Gear.armor(m, Items.DIAMOND_HELMET, null, null, null);
 		Gear.hand(m, Items.DIAMOND_SWORD);
 	}, Ability.SOUL_BLAST, Ability.SUMMON_SKELETONS),
 
-	COLOSSUS("Der Koloss", EntityType.IRON_GOLEM, 2.0, 900, 26, 1.0, m -> { },
+	COLOSSUS("Der Koloss", EntityType.IRON_GOLEM, 2.0, 640, 26, 1.0, m -> { },
 			Ability.SLAM, Ability.SOUL_BLAST);
 
 	/** Fähigkeiten, die Bosse regelmäßig einsetzen. */

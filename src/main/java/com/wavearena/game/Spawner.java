@@ -30,6 +30,9 @@ public final class Spawner {
 	/** Abstand der Tore vom Mittelpunkt (auf der Kampffläche vor der Mauer). */
 	public static final double GATE_RADIUS = ArenaBuilder.R - 2.5;
 
+	/** Anteil des normalen Lebens, den Diener von Bossen haben. */
+	private static final double MINION_HEALTH = 0.6;
+
 	public record Spawned(Mob mob, EnemyData data) {
 	}
 
@@ -103,6 +106,10 @@ public final class Spawner {
 			}
 		}
 
+		if (minion) {
+			// Diener der Bosse sollen Beiwerk sein und den Kampf nicht in die Länge ziehen.
+			hp *= MINION_HEALTH;
+		}
 		setBase(mob, Attributes.MAX_HEALTH, hp);
 		mob.setHealth((float) hp);
 		setBase(mob, Attributes.MOVEMENT_SPEED, speed);
@@ -135,7 +142,7 @@ public final class Spawner {
 		if (mob == null) {
 			return null;
 		}
-		double hp = baseOf(mob, Attributes.MAX_HEALTH, 14.0) * WaveComposer.healthScale(wave);
+		double hp = baseOf(mob, Attributes.MAX_HEALTH, 14.0) * WaveComposer.healthScale(wave) * MINION_HEALTH;
 		setBase(mob, Attributes.MAX_HEALTH, hp);
 		mob.setHealth((float) hp);
 		if (mob.getAttribute(Attributes.ATTACK_DAMAGE) != null) {
@@ -155,7 +162,7 @@ public final class Spawner {
 		type.equip.accept(mob);
 
 		int cycle = BossType.cycle(wave);
-		double hp = type.baseHealth * WaveComposer.playerFactor(players) * (1.0 + 0.5 * (cycle - 1));
+		double hp = type.baseHealth * WaveComposer.playerFactor(players) * (1.0 + 0.4 * (cycle - 1));
 		setBase(mob, Attributes.MAX_HEALTH, hp);
 		mob.setHealth((float) hp);
 

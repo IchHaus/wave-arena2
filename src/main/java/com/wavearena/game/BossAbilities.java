@@ -124,12 +124,12 @@ public final class BossAbilities {
 	// ------------------------------------------------------------------ Diener
 
 	private static void summon(ServerLevel level, Mob boss, int wave, long now, int kind) {
-		int cap = 8 + wave / 4;
+		int cap = 6 + wave / 5;
 		int existing = GameManager.minionCount();
 		if (existing >= cap) {
 			return;
 		}
-		int count = Math.min(Math.min(2 + wave / 8 + BossType.cycle(wave), 6), cap - existing);
+		int count = Math.min(Math.min(2 + wave / 12 + (BossType.cycle(wave) - 1), 5), cap - existing);
 
 		Fx.sound(level, boss.getX(), boss.getY(), boss.getZ(), SoundEvents.EVOKER_PREPARE_SUMMON, 1.2F, 0.9F);
 		for (int i = 0; i < count; i++) {
